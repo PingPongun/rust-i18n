@@ -18,6 +18,8 @@ pub struct I18nConfig {
     pub available_locales: Vec<String>,
     #[serde(default = "load_path")]
     pub load_path: String,
+    #[serde(default = "generate_version")]
+    pub generate_version: usize,
 }
 
 fn default_locale() -> String {
@@ -30,6 +32,9 @@ fn available_locales() -> Vec<String> {
 
 fn load_path() -> String {
     I18nConfig::default().load_path
+}
+fn generate_version() -> usize {
+    I18nConfig::default().generate_version
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -44,6 +49,7 @@ impl Default for I18nConfig {
             default_locale: "en".to_string(),
             available_locales: vec!["en".to_string()],
             load_path: "./locales".to_string(),
+            generate_version: 2,
         }
     }
 }

@@ -251,7 +251,7 @@ You can add [i18n-ally-custom-framework.yml](https://github.com/longbridgeapp/ru
 
 We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code and then write into YAML file.
 
-> In current only output YAML, and use `_version: 2` format.
+> In current only output YAML, and use `_version: 2` format by default (can be configured to use `_version: 1` in Config.toml).
 
 You can install it via `cargo install rust-i18n`, then you get `cargo i18n` command.
 
@@ -275,6 +275,9 @@ $ cargo install rust-i18n
 # This config for let `cargo i18n` command line tool know where to find your translations.
 # You must keep this path same as the one you pass to method `rust_i18n::i18n!`.
 # load-path = "locales"
+
+# Generate yaml file with `_version: 1` format
+# generate-version = 1
 ```
 
 Rust I18n providered a `i18n` bin for help you extract the untranslated texts from the source code and then write into YAML file.

@@ -54,8 +54,21 @@ fn main() -> Result<(), Error> {
 
             let output_path = Path::new(source_path).join(&cfg.load_path);
 
-            let result =
-                generator::generate(&output_path, &cfg.available_locales, messages.clone());
+            let result;
+            match cfg.generate_version {
+                1 => {
+                    result =
+                        generator::version1::generate(&output_path, &cfg.available_locales, messages.clone())
+                }
+                2 => {
+                    result =
+                        generator::version2::generate(&output_path, &cfg.available_locales, messages.clone())
+                }
+                _ => panic!(
+                    "Generator does not support sellected version. Supported versions: [1, 2]"
+                ),
+            }
+
             if result.is_err() {
                 has_error = true;
             }
