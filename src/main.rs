@@ -1,7 +1,8 @@
 use anyhow::Error;
 use clap::{App, Arg, SubCommand};
 
-use std::{collections::HashMap, path::Path};
+use indexmap::IndexMap;
+use std::path::Path;
 
 use rust_i18n_extract::{extractor, generator, iter};
 mod config;
@@ -34,7 +35,7 @@ fn main() -> Result<(), Error> {
         .subcommand(extract_command)
         .get_matches();
 
-    let mut results = HashMap::new();
+    let mut results = IndexMap::new();
 
     #[allow(clippy::single_match)]
     match app.subcommand() {

@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 struct TestBackend {
-    trs: HashMap<String, String>,
+    trs: IndexMap<String, String>,
 }
 
 impl TestBackend {
     fn new() -> Self {
-        let mut trs = HashMap::new();
+        let mut trs = IndexMap::new();
         trs.insert("foo".into(), "pt-fake.foo".to_string());
         Self { trs }
     }

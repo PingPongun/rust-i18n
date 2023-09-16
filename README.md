@@ -196,14 +196,14 @@ For example, you can use HTTP API for load translations from remote server:
 use rust_i18n::Backend;
 
 pub struct RemoteI18n {
-    trs: HashMap<String, HashMap<String, String>>,
+    trs: IndexMap<String, IndexMap<String, String>>,
 }
 
 impl RemoteI18n {
     fn new() -> Self {
         // fetch translations from remote URL
         let response = reqwest::blocking::get("https://your-host.com/assets/locales.yml").unwrap();
-        let trs = serde_yaml::from_str::<HashMap<String, HashMap<String, String>>>(&response.text().unwrap()).unwrap();
+        let trs = serde_yaml::from_str::<IndexMap<String, IndexMap<String, String>>>(&response.text().unwrap()).unwrap();
 
         return Self {
             trs

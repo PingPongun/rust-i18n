@@ -1,6 +1,6 @@
 use quote::quote;
 use rust_i18n_support::{is_debug, load_locales};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use syn::{parse_macro_input, Expr, Ident, LitStr, Token};
 
 struct Args {
@@ -109,7 +109,7 @@ pub fn i18n(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 fn generate_code(
-    translations: HashMap<String, HashMap<String, String>>,
+    translations: IndexMap<String, IndexMap<String, String>>,
     args: Args,
 ) -> proc_macro2::TokenStream {
     let mut all_translations = Vec::<proc_macro2::TokenStream>::new();

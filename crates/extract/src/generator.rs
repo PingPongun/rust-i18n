@@ -1,6 +1,6 @@
 use crate::extractor::Message;
 use rust_i18n_support::load_locales;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::io::prelude::*;
 use std::io::Result;
 use std::path::Path;
@@ -23,7 +23,7 @@ pub mod version1 {
             let ignore_file = |fname: &str| fname.ends_with(&filename);
             let data = load_locales(&output_path, ignore_file);
 
-            let mut new_values: HashMap<String, String> = HashMap::new();
+            let mut new_values: IndexMap<String, String> = IndexMap::new();
 
             for m in messages.clone() {
                 if !m.locations.is_empty() {
@@ -68,7 +68,7 @@ pub mod version1 {
     fn write_file<P: AsRef<Path>>(
         output: &P,
         filename: &str,
-        translations: &HashMap<String, String>,
+        translations: &IndexMap<String, String>,
     ) -> Result<()> {
         let output_file = std::path::Path::new(output.as_ref()).join(String::from(filename));
         let mut output = ::std::fs::File::create(&output_file)
@@ -83,7 +83,7 @@ pub mod version1 {
 pub mod version2 {
     use super::*;
 
-    type Translations = HashMap<String, HashMap<String, String>>;
+    type Translations = IndexMap<String, IndexMap<String, String>>;
 
     pub fn generate<'a, P: AsRef<Path>>(
         output_path: P,
@@ -172,7 +172,7 @@ pub mod version2 {
                 let value = m.key.split('.').last().unwrap_or_default();
 
                 trs.entry(m.key.clone())
-                    .or_insert_with(HashMap::new)
+                    .or_insert_with(IndexMap::new)
                     .insert(locale.to_string(), value.to_string());
             }
         }
@@ -222,7 +222,7 @@ pub mod version2 {
             assert_eq_json(&result, &expect);
 
             trs.insert("hello".to_string(), {
-                let mut map = HashMap::new();
+                let mut map = IndexMap::new();
                 map.insert("en".to_string(), "Hello".to_string());
                 map.insert("zh".to_string(), "你好".to_string());
                 map

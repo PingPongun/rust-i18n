@@ -1,14 +1,15 @@
 use normpath::PathExt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
+use indexmap::map::IndexMap;
 
 mod backend;
 pub use backend::{Backend, BackendExt, SimpleBackend};
 
 type Locale = String;
 type Value = serde_json::Value;
-type Translations = HashMap<Locale, Value>;
+type Translations = IndexMap<Locale, Value>;
 
 pub fn is_debug() -> bool {
     std::env::var("RUST_I18N_DEBUG").unwrap_or_else(|_| "0".to_string()) == "1"
@@ -28,13 +29,13 @@ fn merge_value(a: &mut Value, b: &Value) {
     }
 }
 
-// Load locales into flatten key, value HashMap
+// Load locales into flatten key, value IndexMap
 pub fn load_locales<F: Fn(&str) -> bool>(
     locales_path: &str,
     ignore_if: F,
-) -> HashMap<String, HashMap<String, String>> {
-    let mut result: HashMap<String, HashMap<String, String>> = HashMap::new();
-    let mut translations = HashMap::new();
+) -> IndexMap<String, IndexMap<String, String>> {
+    let mut result: IndexMap<String, IndexMap<String, String>> = IndexMap::new();
+    let mut translations = IndexMap::new();
     let locales_path = match Path::new(locales_path).normalize() {
         Ok(p) => p,
         Err(e) => {
@@ -190,7 +191,7 @@ fn parse_file_v2(key_prefix: &str, data: &serde_json::Value) -> Option<Translati
                     //  zh-CN: 欢迎
                     if text.is_string() {
                         let key = format_keys(&[&key_prefix, &key]);
-                        let sub_trs = HashMap::from([(key, text.clone())]);
+                        let sub_trs = IndexMap::from([(key, text.clone())]);
                         let sub_value = serde_json::to_value(&sub_trs).unwrap();
 
                         trs.entry(locale.clone())
@@ -244,8 +245,8 @@ fn format_keys(keys: &[&str]) -> String {
         .join(".")
 }
 
-fn flatten_keys(prefix: &str, trs: &Value) -> HashMap<String, String> {
-    let mut v = HashMap::<String, String>::new();
+fn flatten_keys(prefix: &str, trs: &Value) -> IndexMap<String, String> {
+    let mut v = IndexMap::<String, String>::new();
     let prefix = prefix.to_string();
 
     match &trs {

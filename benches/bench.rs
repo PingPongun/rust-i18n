@@ -5,7 +5,7 @@ rust_i18n::i18n!("./tests/locales");
 use criterion::{criterion_group, criterion_main, Criterion};
 
 lazy_static::lazy_static! {
-pub static ref DICT: std::collections::HashMap<&'static str, &'static str> =
+pub static ref DICT: indexmap::IndexMap<&'static str, &'static str> =
     [
         ("hello", "Bar - Hello, World!"),
     ].iter().cloned().collect();
@@ -28,12 +28,12 @@ fn bench_t(c: &mut Criterion) {
     });
 
     // 46.721
-    c.bench_function("static_hashmap_get_to_string", |b| {
+    c.bench_function("static_indexmap_get_to_string", |b| {
         b.iter(|| DICT.get("hello").unwrap().to_string())
     });
 
     // 20.023 ns
-    c.bench_function("static_hashmap_get_as_static_str", |b| {
+    c.bench_function("static_indexmap_get_as_static_str", |b| {
         b.iter(|| DICT.get("hello").unwrap())
     });
 
