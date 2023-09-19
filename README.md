@@ -23,6 +23,7 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >- Keep all translations files sorted (even after manual edit)
 >- Translation files can be converted between versions/file formats, by simply changing settings in Config.toml
 >- Default transleted text in `TODO.*` files is now taken from default locale "done" file (if present)
+>- Add ToStringI18N trait and derive macro for converting enum to translated string
 
 ## Features
 

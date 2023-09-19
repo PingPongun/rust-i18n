@@ -6,7 +6,7 @@ use std::sync::RwLock;
 
 #[doc(hidden)]
 pub use once_cell;
-pub use rust_i18n_macro::i18n;
+pub use rust_i18n_macro::{i18n, ToStringI18N};
 pub use rust_i18n_support::{Backend, BackendExt, SimpleBackend};
 
 static CURRENT_LOCALE: Lazy<RwLock<String>> = Lazy::new(|| RwLock::new(String::from("en")));
@@ -101,4 +101,8 @@ macro_rules! available_locales {
     () => {
         crate::_rust_i18n_available_locales()
     };
+}
+
+pub trait ToStringI18N {
+    fn to_string_i18n(&self) -> String;
 }

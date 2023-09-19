@@ -1,7 +1,8 @@
+use indexmap::IndexMap;
+use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use rust_i18n_support::{is_debug, load_locales};
-use indexmap::IndexMap;
-use syn::{parse_macro_input, Expr, Ident, LitStr, Token};
+use syn::{parse_macro_input, Data, DeriveInput, Expr, Fields, Ident, Lit, LitStr, Token};
 
 struct Args {
     locales_path: String,
@@ -192,4 +193,81 @@ fn generate_code(
             locales
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////
+///////////////////////////ToStringI18N/////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+fn get_variants(ast: &DeriveInput) -> syn::Result<Vec<TokenStream>> {
+    let name = &ast.ident;
+    let mut arms = Vec::new();
+    let variants = match &ast.data {
+        Data::Enum(v) => &v.variants,
+        _ => {
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "This macro only supports enums.",
+            ))
+        }
+    };
+    let module = if let Some(attr) = ast
+        .clone()
+        .attrs
+        .into_iter()
+        .find(|attr| attr.path().is_ident("module"))
+    {
+        let mut s = attr.meta.require_list().unwrap().tokens.to_string();
+        s.push('.');
+        s
+    } else {
+        String::new()
+    };
+
+    for variant in variants {
+        let ident = &variant.ident;
+
+        let output = [&module, &name.to_string(), ".", &ident.to_string()].join("");
+        let output_lit = Lit::new(Literal::string(&output));
+        let output = if let Lit::Str(output_strlit) = output_lit {
+            output_strlit
+        } else {
+            unreachable!()
+        };
+
+        let params = match variant.fields {
+            Fields::Unit => quote! {},
+            Fields::Unnamed(..) => quote! { (..) },
+            Fields::Named(..) => quote! { {..} },
+        };
+        arms.push(quote! {#name::#ident #params =>  ::rust_i18n::t!(#output ) });
+    }
+
+    Ok(arms)
+}
+
+fn to_string_i18n_inner(ast: &DeriveInput) -> syn::Result<TokenStream> {
+    let name = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+    let arms = get_variants(ast)?;
+    Ok(quote! {
+        impl #impl_generics ToStringI18N for #name #ty_generics #where_clause {
+            fn to_string_i18n(&self) ->String {
+                match *self {
+                    #(#arms),*
+                }
+            }
+        }
+    })
+}
+
+/// Generete ToStringI18N trait implementation. Generated translation-keys are: EnumName.VariantName
+/// Enum atributtes:
+/// - module(prefix) - add "prefix." to generated translation-key
+#[proc_macro_derive(ToStringI18N, attributes(module))]
+pub fn to_string_i18n(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+
+    let toks = to_string_i18n_inner(&ast).unwrap_or_else(|err| err.to_compile_error());
+    toks.into()
 }
