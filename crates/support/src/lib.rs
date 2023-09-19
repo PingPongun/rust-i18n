@@ -1,11 +1,12 @@
+use indexmap::map::IndexMap;
 use normpath::PathExt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use indexmap::map::IndexMap;
 
 mod backend;
 pub use backend::{Backend, BackendExt, SimpleBackend};
+pub mod config;
 
 type Locale = String;
 type Value = serde_json::Value;
@@ -125,7 +126,7 @@ fn parse_file(content: &str, ext: &str, locale: &str) -> Result<Translations, St
     };
 
     match result {
-        Ok(v) => match get_version(&v) {
+        Ok(mut v) => match get_version(&v) {
             2 => {
                 if let Some(trs) = parse_file_v2("", &v) {
                     return Ok(trs);
@@ -134,7 +135,7 @@ fn parse_file(content: &str, ext: &str, locale: &str) -> Result<Translations, St
                 return Err("Invalid locale file format, please check the version field".into());
             }
             _ => {
-                return Ok(parse_file_v1(locale, &v));
+                return Ok(parse_file_v1(locale, &mut v));
             }
         },
         Err(e) => Err(e),
@@ -148,7 +149,10 @@ fn parse_file(content: &str, ext: &str, locale: &str) -> Result<Translations, St
 /// welcome: Welcome
 /// foo: Foo bar
 /// ```
-fn parse_file_v1(locale: &str, data: &serde_json::Value) -> Translations {
+fn parse_file_v1(locale: &str, data: &mut serde_json::Value) -> Translations {
+    if let serde_json::Value::Object(messages) = data {
+        messages.remove("_version");
+    };
     return Translations::from([(locale.to_string(), data.clone())]);
 }
 

@@ -5,10 +5,6 @@ use indexmap::IndexMap;
 use std::path::Path;
 
 use rust_i18n_extract::{extractor, generator, iter};
-mod config;
-
-#[macro_use]
-extern crate serde_derive;
 
 const APP_NAME: &str = "rust-i18n";
 const ABOUT: &str = r#"Rust I18n command for help you simply to extract all untranslated texts from soruce code.
@@ -42,8 +38,7 @@ fn main() -> Result<(), Error> {
         ("i18n", Some(sub_m)) => {
             let source_path = sub_m.value_of("source").expect("Missing source path");
 
-            let cfg = config::load(std::path::Path::new(source_path))?;
-
+            let cfg = rust_i18n_support::config::load(std::path::Path::new(source_path))?;
             iter::iter_crate(source_path, |path, source| {
                 extractor::extract(&mut results, path, source)
             })?;
@@ -51,32 +46,11 @@ fn main() -> Result<(), Error> {
             let mut messages: Vec<_> = results.values().collect();
             messages.sort_by_key(|m| m.index);
 
-            let mut has_error = false;
-
             let output_path = Path::new(source_path).join(&cfg.load_path);
 
-            let result;
-            match cfg.generate_version {
-                1 => {
-                    result =
-                        generator::version1::generate(&output_path, &cfg.available_locales, messages.clone())
-                }
-                2 => {
-                    result =
-                        generator::version2::generate(&output_path, &cfg.available_locales, messages.clone())
-                }
-                _ => panic!(
-                    "Generator does not support sellected version. Supported versions: [1, 2]"
-                ),
-            }
+            generator::generate(&output_path, &cfg, messages.clone());
 
-            if result.is_err() {
-                has_error = true;
-            }
-
-            if has_error {
-                std::process::exit(1);
-            }
+            std::process::exit(0);
         }
         _ => {}
     }

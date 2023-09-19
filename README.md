@@ -10,6 +10,20 @@ Unlike other I18n libraries, Rust I18n's goal is to provide a simple and easy-to
 
 The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i18n) and [Rails I18n](https://guides.rubyonrails.org/i18n.html).
 
+>## Difference from Crates.io/longbridgeapp/upstream version
+>
+>This fork has some important improvements to extractor/generetor:
+>
+>- Can extract translation-keys from macro-expanded file (so t!() can be “hidden” behind macros/derives)
+>- Genereted files are sorted in alphabetic order
+>- Genereted files are configurable by Config.toml (version 1/2; yaml, json, toml)
+>- cargo-i18n can be installed from git
+>- Extract `DONE` marked translations from `TODO.*` files and move them to "done" file
+>- Extract keys no longer present in code from "done" files and move them to `REMOVED.*` files
+>- Keep all translations files sorted (even after manual edit)
+>- Translation files can be converted between versions/file formats, by simply changing settings in Config.toml
+>- Default transleted text in `TODO.*` files is now taken from default locale "done" file (if present)
+
 ## Features
 
 - Codegen on compile time for includes translations into binary.
@@ -249,15 +263,22 @@ You can add [i18n-ally-custom-framework.yml](https://github.com/longbridgeapp/ru
 
 > __Experimental__
 
-We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code and then write into YAML file.
+We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code.
 
-> In current only output YAML, and use `_version: 2` format by default (can be configured to use `_version: 1` in Config.toml).
+Generated files can be configured in Cargo.toml:
 
-You can install it via `cargo install rust-i18n`, then you get `cargo i18n` command.
+- select file version
+  1. each locale is written in separate file
+  2. all locales in single file
+- select file format (yaml, json, toml)
+
+You can install it via:
 
 ```bash
-$ cargo install rust-i18n
+$ cargo install --git "https://github.com/PingPongun/rust-i18n.git" --branch "develop" --bin cargo-i18n rust-i18n
 ```
+
+Then you get `cargo i18n` command.
 
 ### Extractor Config
 
@@ -276,18 +297,20 @@ $ cargo install rust-i18n
 # You must keep this path same as the one you pass to method `rust_i18n::i18n!`.
 # load-path = "locales"
 
-# Generate yaml file with `_version: 1` format
-# generate-version = 1
+# Choose file version to generate:
+# 1 - single locale per file
+# 2 - all locales in single file
+# generate-version = 2
+
+# Choose generated file extension (yaml/yml, json, toml)
+# generate-extension = "yaml"
 ```
 
-Rust I18n providered a `i18n` bin for help you extract the untranslated texts from the source code and then write into YAML file.
+After running command `cargo i18n` the untranslated texts will be extracted and saved into `locales/TODO.en.yml` file.
 
-```bash
-$ cargo install rust-i18n
-# Now you have `cargo i18n` command
-```
+After you finished translating file remove `TODO.` from its name. You can also mark single `TODO.en.yml` entries as translated by starting them with word `DONE`. Extractor then will find these entries and move them to file `en.yml`.
 
-After that the untranslated texts will be extracted and saved into `locales/TODO.en.yml` file.
+If keyword has been removed from code and it was already translated (in file `en.yml` or marked with `DONE`), it will be moved to file `REMOVED.en.yml`. You are free to remove `REMOVED.*` files, they have no meaning to i18n, they are only for user convinience.
 
 You also can special the locale by use `--locale` option:
 
