@@ -1,8 +1,7 @@
 [package]
 edition = "2021"
-name = "rust-i18n-example"
+name = "my-i18n"
 version = "0.1.0"
 
 [dependencies]
-example-base = { path = "../crates/example-base" }
 rust-i18n = { path = "../../../" }

@@ -10,12 +10,28 @@ Unlike other I18n libraries, Rust I18n's goal is to provide a simple and easy-to
 
 The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i18n) and [Rails I18n](https://guides.rubyonrails.org/i18n.html).
 
+>## Difference from Crates.io/longbridgeapp/upstream version
+>
+>This fork has some important improvements to extractor/generetor:
+>
+>- Can extract translation-keys from macro-expanded file (so t!() can be “hidden” behind macros/derives)
+>- Genereted files are sorted in alphabetic order
+>- Genereted files are configurable by Config.toml (version 1/2; yaml, json, toml)
+>- cargo-i18n can be installed from git
+>- Extract `DONE` marked translations from `TODO.*` files and move them to "done" file
+>- Extract keys no longer present in code from "done" files and move them to `REMOVED.*` files
+>- Keep all translations files sorted (even after manual edit)
+>- Translation files can be converted between versions/file formats, by simply changing settings in Config.toml
+>- Default transleted text in `TODO.*` files is now taken from default locale "done" file (if present)
+>- Add ToStringI18N trait and derive macro for converting enum to translated string
+
 ## Features
 
 - Codegen on compile time for includes translations into binary.
 - Global `t!` macro for loading localized text in everywhere.
 - Use YAML (default), JSON or TOML format for mapping localized text, and support mutiple files merging.
 - `cargo i18n` Command line tool for checking and extract untranslated texts into YAML files.
+- Support all localized texts in one file, or split into difference files by locale.
 
 ## Usage
 
@@ -23,10 +39,10 @@ Add crate dependencies in your Cargo.toml and setup I18n config:
 
 ```toml
 [dependencies]
-rust-i18n = "1"
+rust-i18n = "2"
 ```
 
-Load macro and init translations in `lib.rs`
+Load macro and init translations in `lib.rs` or `main.rs`:
 
 ```rs
 // Load I18n macro, for allow you use `t!` macro in anywhere.
@@ -60,58 +76,42 @@ fn main() {
 }
 ```
 
-Make sure all localized files (containing the localized mappings) are located in the `locales/` folder of the project root directory:
+## Locale file
 
-> 💡Since: v2.0.0, the localized files supports use multiple formats, including `*.{yml,yaml,json,toml}`, and will merge all them.
+You can use `_version` key to specify the version of the locale file, and the default value is `1`.
+
+### Split Localized Texts into Difference Files
+
+> _version: 1
+
+You can also split the each language into difference files, and you can choise (YAML, JSON, TOML), for example: `en.json`:
 
 ```bash
 .
 ├── Cargo.lock
 ├── Cargo.toml
 ├── locales
-│   ├── en.yml
 │   ├── zh-CN.yml
-│   └── zh-HK.yml
+│   ├── en.yml
 └── src
 │   └── main.rs
-└── sub_app
-│   └── locales
-│   │   └── en.yml
-│   │   └── zh-CN.yml
-│   │   └── zh-HK.yml
-│   └── src
-│   │   └── main.rs
-│   └── Cargo.toml
 ```
-
-In the localized files, specify the localization keys and their corresponding values, for example, in `en.yml`:
 
 ```yml
-hello: Hello world # A simple key -> value mapping
-messages:
-  hello: Hello, %{name} # A nested key.sub_key -> value mapping, in this case "messages.hello" maps to "Hello, %{name}"
+_version: 1
+hello: "Hello world"
+messages.hello: "Hello, %{name}"
 ```
 
-And example of the `zh-CN.yml`:
-
-```yml
-hello: 你好世界
-messages:
-  hello: 你好，%{name} (%{count})
-```
-
-If you wants use JSON format, just rename the file to `en.json` and the content is like this:
+Or use JSON or TOML format, just rename the file to `en.json` or `en.toml`, and the content is like this:
 
 ```json
 {
+  "_version": 1,
   "hello": "Hello world",
-  "messages": {
-    "hello": "Hello, %{name}"
-  }
+  "messages.hello": "Hello, %{name}"
 }
 ```
-
-Or use TOML format, just rename the file to `en.toml` and the content is like this:
 
 ```toml
 hello = "Hello world"
@@ -120,7 +120,47 @@ hello = "Hello world"
 hello = "Hello, %{name}"
 ```
 
-### Loading Localized Strings in Rust
+### All Localized Texts in One File
+
+> _version: 2
+
+Make sure all localized files (containing the localized mappings) are located in the `locales/` folder of the project root directory:
+
+```bash
+.
+├── Cargo.lock
+├── Cargo.toml
+├── locales
+│   ├── app.yml
+│   ├── some-module.yml
+└── src
+│   └── main.rs
+└── sub_app
+│   └── locales
+│   │   └── app.yml
+│   └── src
+│   │   └── main.rs
+│   └── Cargo.toml
+```
+
+In the localized files, specify the localization keys and their corresponding values, for example, in `app.yml`:
+
+
+```yml
+_version: 2
+hello:
+  en: Hello world
+  zh-CN: 你好世界
+messages.hello:
+  en: Hello, %{name}
+  zh-CN: 你好，%{name}
+```
+
+This is useful when you use [GitHub Copilot](https://github.com/features/copilot), after you write a first translated text, then Copilot will auto generate other locale's translations for you.
+
+<img src="https://user-images.githubusercontent.com/5518/262332592-7b6cf058-7ef4-4ec7-8dea-0aa3619ce6eb.gif" width="446" />
+
+### Get Localized Strings in Rust
 
 Import the `t!` macro from this crate into your current scope:
 
@@ -150,7 +190,7 @@ t!("messages.hello", locale = "zh-CN", "name" => "Jason", "count" => 3 + 2);
 // => "你好，Jason (5)"
 ```
 
-### Setting and Getting the Global Locale
+### Current Locale
 
 You can use `rust_i18n::set_locale` to set the global locale at runtime, so that you don't have to specify the locale on each `t!` invocation.
 
@@ -159,16 +199,6 @@ rust_i18n::set_locale("zh-CN");
 
 let locale = rust_i18n::locale();
 assert_eq!(locale, "zh-CN");
-```
-
-## Extractor
-
-We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code and then write into YAML file.
-
-You can install it via `cargo install rust-i18n`, then you get `cargo i18n` command.
-
-```bash
-$ cargo install rust-i18n
 ```
 
 ### Extend Backend
@@ -181,14 +211,14 @@ For example, you can use HTTP API for load translations from remote server:
 use rust_i18n::Backend;
 
 pub struct RemoteI18n {
-    trs: HashMap<String, HashMap<String, String>>,
+    trs: IndexMap<String, IndexMap<String, String>>,
 }
 
 impl RemoteI18n {
     fn new() -> Self {
         // fetch translations from remote URL
         let response = reqwest::blocking::get("https://your-host.com/assets/locales.yml").unwrap();
-        let trs = serde_yaml::from_str::<HashMap<String, HashMap<String, String>>>(&response.text().unwrap()).unwrap();
+        let trs = serde_yaml::from_str::<IndexMap<String, IndexMap<String, String>>>(&response.text().unwrap()).unwrap();
 
         return Self {
             trs
@@ -197,14 +227,14 @@ impl RemoteI18n {
 }
 
 impl Backend for RemoteI18n {
-    fn available_locales(&self) -> Vec<String> {
-        return self.trs.keys().cloned().collect();
+    fn available_locales(&self) -> Vec<&str> {
+        return self.trs.keys().collect();
     }
 
-    fn translate(&self, locale: &str, key: &str) -> Option<String> {
+    fn translate(&self, locale: &str, key: &str) -> Option<&str> {
         // Write your own lookup logic here.
         // For example load from database
-        return self.trs.get(locale)?.get(key).cloned();
+        return self.trs.get(locale)?.get(key);
     }
 }
 ```
@@ -219,7 +249,39 @@ This also will load local translates from ./locales path, but your own `RemoteI1
 
 Now you call `t!` will lookup translates from your own backend first, if not found, will lookup from local files.
 
-### Configuration for `cargo i18n` command
+## Example
+
+A minimal example of using rust-i18n can be found [here](https://github.com/longbridgeapp/rust-i18n/tree/main/examples).
+
+## I18n Ally
+
+I18n Ally is a VS Code extension for helping you translate your Rust project.
+
+You can add [i18n-ally-custom-framework.yml](https://github.com/longbridgeapp/rust-i18n/blob/main/.vscode/i18n-ally-custom-framework.yml) to your project `.vscode` directory, and then use I18n Ally can parse `t!` marco to show translate text in VS Code editor.
+
+
+## Extractor
+
+> __Experimental__
+
+We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code.
+
+Generated files can be configured in Cargo.toml:
+
+- select file version
+  1. each locale is written in separate file
+  2. all locales in single file
+- select file format (yaml, json, toml)
+
+You can install it via:
+
+```bash
+$ cargo install --git "https://github.com/PingPongun/rust-i18n.git" --branch "develop" --bin cargo-i18n rust-i18n
+```
+
+Then you get `cargo i18n` command.
+
+### Extractor Config
 
 💡 NOTE: `package.metadata.i18n` config section in Cargo.toml is just work for `cargo i18n` command, if you don't use that, you don't need this config.
 
@@ -235,16 +297,21 @@ Now you call `t!` will lookup translates from your own backend first, if not fou
 # This config for let `cargo i18n` command line tool know where to find your translations.
 # You must keep this path same as the one you pass to method `rust_i18n::i18n!`.
 # load-path = "locales"
+
+# Choose file version to generate:
+# 1 - single locale per file
+# 2 - all locales in single file
+# generate-version = 2
+
+# Choose generated file extension (yaml/yml, json, toml)
+# generate-extension = "yaml"
 ```
 
-Rust I18n providered a `i18n` bin for help you extract the untranslated texts from the source code and then write into YAML file.
+After running command `cargo i18n` the untranslated texts will be extracted and saved into `locales/TODO.en.yml` file.
 
-```bash
-$ cargo install rust-i18n
-# Now you have `cargo i18n` command
-```
+After you finished translating file remove `TODO.` from its name. You can also mark single `TODO.en.yml` entries as translated by starting them with word `DONE`. Extractor then will find these entries and move them to file `en.yml`.
 
-After that the untranslated texts will be extracted and saved into `locales/TODO.en.yml` file.
+If keyword has been removed from code and it was already translated (in file `en.yml` or marked with `DONE`), it will be moved to file `REMOVED.en.yml`. You are free to remove `REMOVED.*` files, they have no meaning to i18n, they are only for user convinience.
 
 You also can special the locale by use `--locale` option:
 
@@ -302,16 +369,6 @@ The `RUST_I18N_DEBUG` environment variable can be used to print out some debuggi
 ```bash
 $ RUST_I18N_DEBUG=1 cargo build
 ```
-
-## Example
-
-A minimal example of using rust-i18n can be found [here](https://github.com/longbridgeapp/rust-i18n/tree/main/examples).
-
-## I18n Ally
-
-I18n Ally is a VS Code extension for helping you translate your Rust project.
-
-You can add [i18n-ally-custom-framework.yml](https://github.com/longbridgeapp/rust-i18n/blob/main/.vscode/i18n-ally-custom-framework.yml) to your project `.vscode` directory, and then use I18n Ally can parse `t!` marco to show translate text in VS Code editor.
 
 ## Benchmark
 

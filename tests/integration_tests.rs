@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 struct TestBackend {
-    trs: HashMap<String, String>,
+    trs: IndexMap<String, String>,
 }
 
 impl TestBackend {
     fn new() -> Self {
-        let mut trs = HashMap::new();
+        let mut trs = IndexMap::new();
         trs.insert("foo".into(), "pt-fake.foo".to_string());
         Self { trs }
     }
@@ -34,41 +34,56 @@ rust_i18n::i18n!(
 #[cfg(test)]
 mod tests {
     use rust_i18n::t;
+    use rust_i18n_support::load_locales;
 
     mod test0 {
-        rust_i18n::i18n!();
-    }
-
-    mod test1 {
         rust_i18n::i18n!("./tests/locales");
     }
 
-    mod test2 {
+    mod test1 {
         rust_i18n::i18n!("./tests/locales", fallback = "en");
 
         #[test]
         fn test_fallback() {
             assert_eq!(
-                crate::tests::test2::_rust_i18n_translate("en", "missing.default"),
+                crate::tests::test1::_rust_i18n_translate("en", "missing.default"),
                 "This is missing key fallbacked to en."
             );
         }
     }
 
-    mod test3 {
+    mod test2 {
         rust_i18n::i18n!("./tests/locales", fallback = "zh-CN");
 
         #[test]
         fn test_fallback() {
             assert_eq!(
-                crate::tests::test3::_rust_i18n_translate("en", "fallback_to_cn"),
+                crate::tests::test2::_rust_i18n_translate("en", "fallback_to_cn"),
                 "这是一个中文的翻译。"
             );
         }
     }
 
-    mod test4 {
+    mod test3 {
         rust_i18n::i18n!(fallback = "foo");
+    }
+
+    #[test]
+    fn check_test_environment() {
+        assert_eq!(
+            std::env::var("RUST_TEST_THREADS").unwrap_or_else(|_| "0".to_string()),
+            "1",
+            "The tests assume that they are run in single-threaded environment because \
+            setting the locale is a global state. If using cargo version prior to 1.56, \
+            You should set RUST_TEST_THREADS instead of running with --test-threads."
+        );
+    }
+
+    #[test]
+    fn test_load() {
+        assert!(load_locales("./tests/locales", |_| false)
+            .get("en")
+            .is_some());
     }
 
     #[test]
@@ -81,13 +96,10 @@ mod tests {
 
     #[test]
     fn test_available_locales() {
-        assert_eq!(rust_i18n::available_locales!(), &["en", "pt", "zh-CN"]);
-    }
-
-    #[test]
-    fn it_foo_title() {
-        rust_i18n::set_locale("en");
-        assert_eq!(foo::t("hello"), "Foo - Hello, World!");
+        assert_eq!(
+            rust_i18n::available_locales!(),
+            &["en", "ja", "pt", "zh-CN"]
+        );
     }
 
     #[test]
@@ -203,11 +215,7 @@ mod tests {
         assert_eq!(t!("messages.hello", locale = locale), "Hello, %{name}!");
 
         assert_eq!(
-            t!("messages.hello", name = name, locale = locale),
-            "Hello, Jason Lee!"
-        );
-        assert_eq!(
-            t!("messages.hello", name = name, locale = locale),
+            t!("messages.hello", locale = locale, name = name),
             "Hello, Jason Lee!"
         );
     }
@@ -248,5 +256,35 @@ mod tests {
     #[test]
     fn test_extend_backend() {
         assert_eq!(t!("foo", locale = "pt"), "pt-fake.foo")
+    }
+
+    #[test]
+    fn test_nested_locale_texts() {
+        assert_eq!(t!("nested_locale_test", locale = "en"), "Hello test");
+        assert_eq!(t!("nested_locale_test", locale = "zh-CN"), "你好 test");
+        assert_eq!(t!("nested_locale_test", locale = "ja"), "こんにちは test");
+
+        assert_eq!(t!("nested_locale_test.hello", locale = "en"), "Hello test2");
+        assert_eq!(
+            t!("nested_locale_test.hello", locale = "zh-CN"),
+            "你好 test2"
+        );
+        assert_eq!(
+            t!("nested_locale_test.hello", locale = "ja"),
+            "こんにちは test2"
+        );
+
+        assert_eq!(
+            t!("nested_locale_test.hello.world", locale = "en"),
+            "Hello test3"
+        );
+        assert_eq!(
+            t!("nested_locale_test.hello.world", locale = "zh-CN"),
+            "你好 test3"
+        );
+        assert_eq!(
+            t!("nested_locale_test.hello.world", locale = "ja"),
+            "こんにちは test3"
+        );
     }
 }
