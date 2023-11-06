@@ -22,10 +22,10 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >- Extract keys no longer present in code from "done" files and move them to `REMOVED.*` files
 >- Keep all translations files sorted (even after manual edit)
 >- Translation files can be converted between versions/file formats, by simply changing settings in Config.toml
->- Default transleted text in `TODO.*` files is now taken from default locale "done" file (if present)
->- Add ToStringI18N trait and derive macro for converting enum to translated string
+>- Default translated text in `TODO.*` files is now taken from default locale "done" file (if present)
 >- Extractor works correctly with trailing dots (eg. `t!("testing..."`) would result in entry `testing... : testing...` instead `testing... : ""`)
 >- Supports following syntax `t!( #[doc="Download falied. Contact support"] "error.download.desc")` would extract as `error.download.desc : Download falied. Contact support` (for default locale this would be already placed in done file)(this can be done with more elegant syntax, but this way code is still compatible with upstream crate)
+>- Add `ToStringI18N` trait and derive macro for converting enum to translated string (It's currently only change to `rust-i18n` crate, so if it's not needed, you can use crate from Crates.io in your project and only use this repo as an extractor)
 
 ## Features
 
@@ -278,10 +278,35 @@ Generated files can be configured in Cargo.toml:
 You can install it via:
 
 ```bash
-$ cargo install --git "https://github.com/PingPongun/rust-i18n.git" --branch "develop" --bin cargo-i18n rust-i18n
+$ cargo install --git "https://github.com/PingPongun/rust-i18n.git" --bin cargo-i18n rust-i18n
 ```
 
 Then you get `cargo i18n` command.
+
+If `t!(..)` are hidden behind macros, macros has to be expanded prior to extraction.
+Extraction can then be achived by following script (Powershell):
+
+```Powershell
+cargo expand --all-features --bin bin_name | out-file translate/expanded.rs -encoding utf8
+cargo i18n ./translate
+```
+
+with project structure:
+
+```bash
+.
+├── Cargo.lock
+├── Cargo.toml
+└── src
+│   └── main.rs
+└── translate
+│   ├── en.yml
+│   ├── pl.yml
+│   ├── expanded.rs
+│   └── Cargo.toml
+```
+
+see demo from [egui_struct](https://github.com/PingPongun/rust-i18n)
 
 ### Extractor Config
 
