@@ -147,7 +147,20 @@ fn update_todo_done_removed<'a>(
                     continue;
                 }
             }
-            m.key.split('.').last().unwrap_or_default().to_string()
+            let mut trailing_dots = 0;
+            let mut val = "".to_string();
+            for i in m.key.split('.').rev() {
+                if i == "" {
+                    trailing_dots += 1;
+                } else {
+                    val = i.to_string();
+                    for _ in 0..trailing_dots {
+                        val += ".";
+                    }
+                    break;
+                }
+            }
+            val
         };
 
         list_todo.insert(m.key.clone(), value);

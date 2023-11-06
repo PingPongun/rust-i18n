@@ -24,6 +24,7 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >- Translation files can be converted between versions/file formats, by simply changing settings in Config.toml
 >- Default transleted text in `TODO.*` files is now taken from default locale "done" file (if present)
 >- Add ToStringI18N trait and derive macro for converting enum to translated string
+>- Extractor works correctly with trailing dots (eg. `t!("testing..."`) would result in entry `testing... : testing...` instead `testing... : ""`)
 >- Supports following syntax `t!( #[doc="Download falied. Contact support"] "error.download.desc")` would extract as `error.download.desc : Download falied. Contact support` (for default locale this would be already placed in done file)(this can be done with more elegant syntax, but this way code is still compatible with upstream crate)
 
 ## Features
