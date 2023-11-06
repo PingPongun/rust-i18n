@@ -1,7 +1,7 @@
 use anyhow::Error;
-use proc_macro2::{TokenStream, TokenTree};
-use quote::ToTokens;
 use indexmap::IndexMap;
+use proc_macro2::{Delimiter, Literal, TokenStream, TokenTree};
+use quote::ToTokens;
 use std::path::PathBuf;
 
 pub type Results = IndexMap<String, Message>;
@@ -15,14 +15,16 @@ pub struct Location {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Message {
     pub key: String,
+    pub val: Option<String>,
     pub index: usize,
     pub locations: Vec<Location>,
 }
 
 impl Message {
-    fn new(key: &str, index: usize) -> Self {
+    fn new(key: &str, index: usize, val: Option<String>) -> Self {
         Self {
             key: key.to_owned(),
+            val,
             index,
             locations: vec![],
         }
@@ -81,7 +83,7 @@ impl<'a> Extractor<'a> {
         Ok(())
     }
 
-    fn take_message_inner(&mut self, lit: proc_macro2::Literal) {
+    fn take_message_inner(&mut self, lit: Literal, val: Option<String>) {
         if let Some(key) = literal_to_string(&lit) {
             let message_key = format_message_key(&key);
 
@@ -89,7 +91,7 @@ impl<'a> Extractor<'a> {
             let message = self
                 .results
                 .entry(message_key.clone())
-                .or_insert_with(|| Message::new(&message_key, index));
+                .or_insert_with(|| Message::new(&message_key, index, val));
 
             let span = lit.span();
             let line = span.start().line;
@@ -110,21 +112,70 @@ impl<'a> Extractor<'a> {
         } else {
             return;
         };
-        self.take_message_inner(literal);
+        self.take_message_inner(literal, None);
     }
     fn take_message_fn(&mut self, stream: TokenStream) {
-
         let mut token_iter = stream.into_iter();
 
+        #[derive(PartialEq)]
+        enum DocCommnetState {
+            None,
+            Hash,
+            Group,
+        }
+        let mut state = DocCommnetState::None;
         let mut literal = None;
+        let mut comment = None;
         while let Some(tok) = token_iter.next() {
-            if let TokenTree::Literal(lit) = tok {
-                //take last literal in stream
-                literal = Some(lit);
+            match tok {
+                TokenTree::Punct(x) if x.as_char() == '#' && state == DocCommnetState::None => {
+                    state = DocCommnetState::Hash
+                }
+                TokenTree::Group(group)
+                    if state == DocCommnetState::Hash
+                        && group.delimiter() == Delimiter::Bracket =>
+                {
+                    let mut i = group.stream().into_iter();
+                    let mut doc = true;
+                    if let Some(TokenTree::Ident(ident)) = i.next() {
+                        doc &= ident.to_string() == "doc"
+                    } else {
+                        doc = false
+                    };
+                    if let Some(TokenTree::Punct(punct)) = i.next() {
+                        doc &= punct.as_char() == '='
+                    } else {
+                        doc = false
+                    };
+                    if let Some(TokenTree::Literal(lit)) = i.next() {
+                        let lit = lit
+                            .to_string()
+                            .trim_end_matches('\"')
+                            .trim_start_matches('\"')
+                            .to_string();
+                        comment = Some(lit)
+                    } else {
+                        doc = false
+                    };
+                    if !doc {
+                        state = DocCommnetState::None
+                    } else {
+                        state = DocCommnetState::Group
+                    }
+                }
+                TokenTree::Literal(lit) => {
+                    if state != DocCommnetState::Group {
+                        comment = None;
+                    }
+                    //take last literal in stream
+                    literal = Some(lit);
+                    state = DocCommnetState::None
+                }
+                _ => state = DocCommnetState::None,
             }
         }
         if let Some(literal) = literal {
-            self.take_message_inner(literal);
+            self.take_message_inner(literal, comment);
         }
     }
 }
@@ -148,11 +199,12 @@ mod tests {
     use std::str::FromStr;
 
     macro_rules! build_messages {
-        {$(($key:tt, $($line:tt),+)),+} => {{
+        {$(($key:tt, $val:expr, $($line:tt),+)),+} => {{
             let mut results = Vec::<Message>::new();
             $(
                 let message = Message {
                     key: $key.into(),
+                    val: $val,
                     locations: vec![
                         $(
                             Location {
@@ -210,23 +262,22 @@ mod tests {
         let stream = proc_macro2::TokenStream::from_str(source).unwrap();
 
         let expected = build_messages![
-            ("hello", 4),
-            ("views.message.title", 5),
-            ("views.message.description", 7),
+            ("hello", None, 4),
+            ("views.message.title", None, 5),
+            ("views.message.description", None, 7),
             (
                 "Use YAML for mapping localized text, and support mutiple YAML files merging.",
+                None,
                 11,
                 14
             ),
             (
                 "The table below describes some of those behaviours.",
+                None,
                 18,
                 20
             ),
-            (
-                "Unfolded.test1.test",
-                22
-            )
+            ("Unfolded.test1.test", Some("TESTTT".to_string()), 25)
         ];
 
         let mut results = IndexMap::new();

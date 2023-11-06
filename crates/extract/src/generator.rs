@@ -60,6 +60,7 @@ pub fn generate<'a, P: AsRef<Path>>(
         &cfg.default_locale,
         &IndexMap::new(),
         messages.clone(),
+        true,
     );
     let data_done_default = data_done.get(&cfg.default_locale).unwrap().clone();
     let mut all_locales = cfg.available_locales.clone();
@@ -72,6 +73,7 @@ pub fn generate<'a, P: AsRef<Path>>(
             &locale,
             &data_done_default,
             messages.clone(),
+            false,
         );
     }
 
@@ -101,6 +103,7 @@ fn update_todo_done_removed<'a>(
     locale: &String,
     default_val: &IndexMap<String, String>,
     messages: impl IntoIterator<Item = &'a Message> + Clone,
+    default_locale: bool,
 ) {
     println!("Checking [{}] and generating untranslated texts...", locale);
     let list_done = data_done.entry(locale.clone()).or_default();
@@ -138,6 +141,12 @@ fn update_todo_done_removed<'a>(
             //this is usefull if value is longer text, while key was kept short
             val.clone()
         } else {
+            if let Some(value) = m.val.clone() {
+                if default_locale {
+                    list_done.insert(m.key.clone(), value);
+                    continue;
+                }
+            }
             m.key.split('.').last().unwrap_or_default().to_string()
         };
 
