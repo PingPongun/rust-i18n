@@ -42,18 +42,18 @@ pub fn locale() -> String {
 macro_rules! t {
     // t!("foo")
     ($key:expr) => {
-        crate::_rust_i18n_translate(rust_i18n::locale().as_str(), $key)
+        crate::_rust_i18n_translate(rust_i18n::locale().as_str(), #[allow(unused_doc_comments)] $key)
     };
 
     // t!("foo", locale = "en")
     ($key:expr, locale = $locale:expr) => {
-        crate::_rust_i18n_translate($locale, $key)
+        crate::_rust_i18n_translate($locale, #[allow(unused_doc_comments)] $key)
     };
 
     // t!("foo", locale = "en", a = 1, b = "Foo")
     ($key:expr, locale = $locale:expr, $($var_name:tt = $var_val:expr),+ $(,)?) => {
         {
-            let mut message = crate::_rust_i18n_translate($locale, $key);
+            let mut message = crate::_rust_i18n_translate($locale, #[allow(unused_doc_comments)] $key);
 
             $(
                 // Get the variable name as a string, and remove quotes surrounding the variable name

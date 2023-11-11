@@ -1,7 +1,5 @@
 # Rust I18n
 
-[![CI](https://github.com/longbridgeapp/rust-i18n/actions/workflows/ci.yml/badge.svg)](https://github.com/longbridgeapp/rust-i18n/actions/workflows/ci.yml) [![Docs](https://docs.rs/rust-i18n/badge.svg)](https://docs.rs/rust-i18n/) [![Crates.io](https://img.shields.io/crates/v/rust-i18n.svg)](https://crates.io/crates/rust-i18n)
-
 > 🎯 Let's make I18n things to easy!
 
 Rust I18n is a crate for loading localized text from a set of (YAML, JSON or TOML) mapping files. The mappings are converted into data readable by Rust programs at compile time, and then localized text can be loaded by simply calling the provided `t!` macro.
@@ -10,9 +8,11 @@ Unlike other I18n libraries, Rust I18n's goal is to provide a simple and easy-to
 
 The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i18n) and [Rails I18n](https://guides.rubyonrails.org/i18n.html).
 
->## Difference from Crates.io/longbridgeapp/upstream version
+>## Difference from [Crates.io/longbridgeapp/upstream version](https://github.com/longbridgeapp/rust-i18n)
 >
->This fork has some important improvements to extractor/generetor:
+>This fork has some important improvements mostly to extractor/generetor:
+>
+>### Extractor/generator (cargo-i18n)
 >
 >- Can extract translation-keys from macro-expanded file (so t!() can be “hidden” behind macros/derives)
 >- Genereted files are sorted in alphabetic order
@@ -23,9 +23,14 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >- Keep all translations files sorted (even after manual edit)
 >- Translation files can be converted between versions/file formats, by simply changing settings in Config.toml
 >- Default translated text in `TODO.*` files is now taken from default locale "done" file (if present)
->- Extractor works correctly with trailing dots (eg. `t!("testing..."`) would result in entry `testing... : testing...` instead `testing... : ""`)
+>- Extractor works correctly with trailing dots (eg. `t!("testing...")` would result in entry `testing... : testing...` instead `testing... : ""`)
 >- Supports following syntax `t!( #[doc="Download falied. Contact support"] "error.download.desc")` would extract as `error.download.desc : Download falied. Contact support` (for default locale this would be already placed in done file)(this can be done with more elegant syntax, but this way code is still compatible with upstream crate)
->- Add `ToStringI18N` trait and derive macro for converting enum to translated string (It's currently only change to `rust-i18n` crate, so if it's not needed, you can use crate from Crates.io in your project and only use this repo as an extractor)
+>
+>### Other (rust-i18n)
+>
+>- Unless you need some of bellow features/changes, you can use crate from Crates.io in your project and only use extractor from this repo
+>- Add `ToStringI18N` trait and derive macro for converting enum to translated string
+>- macro `t!` includes #[allow(unused_doc_comment)], so if using doc comment to pass default value clippy is silent
 
 ## Features
 

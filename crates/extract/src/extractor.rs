@@ -128,7 +128,7 @@ impl<'a> Extractor<'a> {
         let mut comment = None;
         while let Some(tok) = token_iter.next() {
             match tok {
-                TokenTree::Punct(x) if x.as_char() == '#' && state == DocCommnetState::None => {
+                TokenTree::Punct(x) if x.as_char() == '#' && state != DocCommnetState::Hash => {
                     state = DocCommnetState::Hash
                 }
                 TokenTree::Group(group)
@@ -147,16 +147,25 @@ impl<'a> Extractor<'a> {
                     } else {
                         doc = false
                     };
-                    if let Some(TokenTree::Literal(lit)) = i.next() {
-                        let lit = lit
-                            .to_string()
-                            .trim_end_matches('\"')
-                            .trim_start_matches('\"')
-                            .to_string();
-                        comment = Some(lit)
-                    } else {
-                        doc = false
-                    };
+                    if doc {
+                        if let Some(TokenTree::Literal(lit)) = i.next() {
+                            let lit = lit
+                                .to_string()
+                                .trim()
+                                .trim_end_matches('\"')
+                                .trim_start_matches('\"')
+                                .trim()
+                                .to_string();
+                            if let Some(cmt) = comment {
+                                comment = Some(cmt + "\r\n" + lit.as_str())
+                            } else {
+                                comment = Some(lit)
+                            }
+                        } else {
+                            doc = false
+                        };
+                    }
+
                     if !doc {
                         state = DocCommnetState::None
                     } else {
