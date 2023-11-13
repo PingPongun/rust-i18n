@@ -2,7 +2,6 @@
 //! to load and inspect `Cargo.toml` metadata.
 //!
 //! See `Manifest::from_slice`.
-use itertools::Itertools;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::fs;
@@ -87,7 +86,8 @@ pub fn parse(contents: &str) -> io::Result<I18nConfig> {
         .insert(0, config.i18n.default_locale.clone());
 
     // unqiue
-    config.i18n.available_locales = config.i18n.available_locales.into_iter().unique().collect();
+    config.i18n.available_locales.sort_unstable();
+    config.i18n.available_locales.dedup();
 
     Ok(config.i18n)
 }

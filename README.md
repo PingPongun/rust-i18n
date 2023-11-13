@@ -32,7 +32,11 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >
 >- `ToStringI18N` trait and derive macro for converting enum to translated string
 >- macro `t!` includes #[allow(unused_doc_comment)], so if using doc comment to pass default value clippy is silent
->- uses more recent versions of dependencies
+>- dependencies:
+>   - remove unused
+>   - optimize
+>   - uses more recent versions
+>   - rust-i18n (lib) does not depend on extractor
 
 ## Extractor
 
@@ -48,7 +52,7 @@ Generated files can be configured in Cargo.toml:
 You can install it via:
 
 ```bash
-cargo install --git "https://github.com/PingPongun/rust-i18n.git" --bin cargo-i18n rust-i18n
+cargo install --git "https://github.com/PingPongun/rust-i18n.git"  --bin cargo-i18n --features="extractor" rust-i18n
 ```
 
 Then you get `cargo i18n` command.

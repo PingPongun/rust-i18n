@@ -11,7 +11,6 @@ version = "2.5.0"
 
 [dependencies]
 anyhow = "1"
-ignore = "0.4"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 quote = "1"
 regex = "1"
@@ -22,7 +21,8 @@ serde_json = "1"
 serde_yaml = "0.9"
 syn = { version = "2.0.18", features = ["full"] }
 toml = "0.8"
-indexmap = { version = "2.0", features = ["serde"] }
+indexmap = "2.0"
+clap = { version = "4.4.4", features = ["cargo", "derive"] }
 
 [dev-dependencies]
 indoc = "2"

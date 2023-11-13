@@ -1,5 +1,4 @@
 use indexmap::map::IndexMap;
-use normpath::PathExt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -37,7 +36,7 @@ pub fn load_locales<F: Fn(&str) -> bool>(
 ) -> IndexMap<String, IndexMap<String, String>> {
     let mut result: IndexMap<String, IndexMap<String, String>> = IndexMap::new();
     let mut translations = IndexMap::new();
-    let locales_path = match Path::new(locales_path).normalize() {
+    let locales_path = match dunce::canonicalize(Path::new(locales_path)) {
         Ok(p) => p,
         Err(e) => {
             if is_debug() {
