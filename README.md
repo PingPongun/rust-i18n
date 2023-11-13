@@ -14,7 +14,7 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >
 >### Extractor/generator (cargo-i18n)
 >
->- Can extract translation-keys from macro-expanded file (so t!() can be “hidden” behind macros/derives)
+>- Can extract translation-keys, even if t!() is “hidden” behind macros/derives
 >- Genereted files are sorted in alphabetic order
 >- Genereted files are configurable by Config.toml (version 1/2; yaml, json, toml)
 >- cargo-i18n can be installed from git
@@ -28,9 +28,112 @@ The API of this crate is inspired by [ruby-i18n](https://github.com/ruby-i18n/i1
 >
 >### Other (rust-i18n)
 >
->- Unless you need some of bellow features/changes, you can use crate from Crates.io in your project and only use extractor from this repo
->- Add `ToStringI18N` trait and derive macro for converting enum to translated string
+>Unless you need some of bellow features/changes, you can use crate from Crates.io in your project and only use extractor from this repo
+>
+>- `ToStringI18N` trait and derive macro for converting enum to translated string
 >- macro `t!` includes #[allow(unused_doc_comment)], so if using doc comment to pass default value clippy is silent
+>- uses more recent versions of dependencies
+
+## Extractor
+
+We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code.
+
+Generated files can be configured in Cargo.toml:
+
+- select file version
+  1. each locale is written in separate file
+  2. all locales in single file
+- select file format (yaml, json, toml)
+
+You can install it via:
+
+```bash
+cargo install --git "https://github.com/PingPongun/rust-i18n.git" --bin cargo-i18n rust-i18n
+```
+
+Then you get `cargo i18n` command.
+
+`cargo i18n` internaly uses cargo to expand whole project, so if your project requires some untypical setup (eg. features) pass them through coresponding args (in most cases simple `cargo i18n` or `cargo i18n --all-features` is enough).
+
+You may want to add this simple build script (`build.rs`) to ensure that all changes of translations will be immediately included in build:
+
+```Rust
+fn main() {
+    println!("cargo:rerun-if-changed=translate");
+    println!("cargo:rerun-if-changed=src");
+}
+```
+
+It is not currently possible to invoke cargo-i18n from build script(results in deadlock).
+
+For demo project see demo from [egui_struct](https://github.com/PingPongun/egui_struct)
+
+### Extractor Config
+
+💡 NOTE: `package.metadata.i18n` config section in Cargo.toml is just work for `cargo i18n` command, if you don't use that, you don't need this config.
+
+```toml
+[package.metadata.i18n]
+# The available locales for your application, default: ["en"].
+# available-locales = ["en", "zh-CN"]
+
+# The default locale, default: "en".
+# default-locale = "en"
+
+# Path for your translations YAML file, default: "locales".
+# This config for let `cargo i18n` command line tool know where to find your translations.
+# You must keep this path same as the one you pass to method `rust_i18n::i18n!`.
+# load-path = "locales"
+
+# Choose file version to generate:
+# 1 - single locale per file
+# 2 - all locales in single file
+# generate-version = 2
+
+# Choose generated file extension (yaml/yml, json, toml)
+# generate-extension = "yaml"
+```
+
+After running command `cargo i18n` the untranslated texts will be extracted and saved into `locales/TODO.en.yml` file.
+
+After you finished translating file remove `TODO.` from its name. You can also mark single `TODO.en.yml` entries as translated by starting them with word `DONE`. Extractor then will find these entries and move them to file `en.yml`.
+
+If keyword has been removed from code and it was already translated (in file `en.yml` or marked with `DONE`), it will be moved to file `REMOVED.en.yml`. You are free to remove `REMOVED.*` files, they have no meaning to i18n, they are only for user convinience.
+
+```bash
+$ cd your_project_root_directory
+$ cargo i18n
+
+Checking [en] and generating untranslated texts...
+Found 1 new texts need to translate.
+----------------------------------------
+Writing to TODO.en.yml
+
+Checking [fr] and generating untranslated texts...
+Found 11 new texts need to translate.
+----------------------------------------
+Writing to TODO.fr.yml
+
+Checking [zh-CN] and generating untranslated texts...
+All thing done.
+
+Checking [zh-HK] and generating untranslated texts...
+Found 11 new texts need to translate.
+----------------------------------------
+Writing to TODO.zh-HK.yml
+```
+
+Run `cargo i18n -h` to see help.
+
+<details>
+
+<summary style="font-size:150%;">
+    <b>
+        rust-i18n usage (same as 
+        <a href="https://github.com/longbridgeapp/rust-i18n">upstream</a>
+        )
+    </b>
+</summary>
 
 ## Features
 
@@ -266,134 +369,6 @@ I18n Ally is a VS Code extension for helping you translate your Rust project.
 
 You can add [i18n-ally-custom-framework.yml](https://github.com/longbridgeapp/rust-i18n/blob/main/.vscode/i18n-ally-custom-framework.yml) to your project `.vscode` directory, and then use I18n Ally can parse `t!` marco to show translate text in VS Code editor.
 
-
-## Extractor
-
-> __Experimental__
-
-We provided a `cargo i18n` command line tool for help you extract the untranslated texts from the source code.
-
-Generated files can be configured in Cargo.toml:
-
-- select file version
-  1. each locale is written in separate file
-  2. all locales in single file
-- select file format (yaml, json, toml)
-
-You can install it via:
-
-```bash
-$ cargo install --git "https://github.com/PingPongun/rust-i18n.git" --bin cargo-i18n rust-i18n
-```
-
-Then you get `cargo i18n` command.
-
-If `t!(..)` are hidden behind macros, macros has to be expanded prior to extraction.
-Extraction can then be achived by following script (Powershell):
-
-```Powershell
-cargo expand --all-features --bin bin_name | out-file translate/expanded.rs -encoding utf8
-cargo i18n ./translate
-```
-
-with project structure:
-
-```bash
-.
-├── Cargo.lock
-├── Cargo.toml
-└── src
-│   └── main.rs
-└── translate
-│   ├── en.yml
-│   ├── pl.yml
-│   ├── expanded.rs
-│   └── Cargo.toml
-```
-
-see demo from [egui_struct](https://github.com/PingPongun/rust-i18n)
-
-### Extractor Config
-
-💡 NOTE: `package.metadata.i18n` config section in Cargo.toml is just work for `cargo i18n` command, if you don't use that, you don't need this config.
-
-```toml
-[package.metadata.i18n]
-# The available locales for your application, default: ["en"].
-# available-locales = ["en", "zh-CN"]
-
-# The default locale, default: "en".
-# default-locale = "en"
-
-# Path for your translations YAML file, default: "locales".
-# This config for let `cargo i18n` command line tool know where to find your translations.
-# You must keep this path same as the one you pass to method `rust_i18n::i18n!`.
-# load-path = "locales"
-
-# Choose file version to generate:
-# 1 - single locale per file
-# 2 - all locales in single file
-# generate-version = 2
-
-# Choose generated file extension (yaml/yml, json, toml)
-# generate-extension = "yaml"
-```
-
-After running command `cargo i18n` the untranslated texts will be extracted and saved into `locales/TODO.en.yml` file.
-
-After you finished translating file remove `TODO.` from its name. You can also mark single `TODO.en.yml` entries as translated by starting them with word `DONE`. Extractor then will find these entries and move them to file `en.yml`.
-
-If keyword has been removed from code and it was already translated (in file `en.yml` or marked with `DONE`), it will be moved to file `REMOVED.en.yml`. You are free to remove `REMOVED.*` files, they have no meaning to i18n, they are only for user convinience.
-
-You also can special the locale by use `--locale` option:
-
-```bash
-$ cd your_project_root_directory
-$ cargo i18n
-
-Checking [en] and generating untranslated texts...
-Found 1 new texts need to translate.
-----------------------------------------
-Writing to TODO.en.yml
-
-Checking [fr] and generating untranslated texts...
-Found 11 new texts need to translate.
-----------------------------------------
-Writing to TODO.fr.yml
-
-Checking [zh-CN] and generating untranslated texts...
-All thing done.
-
-Checking [zh-HK] and generating untranslated texts...
-Found 11 new texts need to translate.
-----------------------------------------
-Writing to TODO.zh-HK.yml
-```
-
-Run `cargo i18n -h` to see details.
-
-```bash
-$ cargo i18n -h
-cargo-i18n 0.5.0
----------------------------------------
-Rust I18n command for help you simply to extract all untranslated texts from soruce code.
-
-It will iter all Rust files in and extract all untranslated texts that used `t!` macro.
-And then generate a YAML file and merge for existing texts.
-
-https://github.com/longbridgeapp/rust-i18n
-
-USAGE:
-    cargo i18n [OPTIONS] [--] [source]
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-ARGS:
-    <source>    Path of your Rust crate root [default: ./]
-```
-
 ## Debugging the Codegen Process
 
 The `RUST_I18N_DEBUG` environment variable can be used to print out some debugging infos when code is being generated at compile time.
@@ -416,3 +391,5 @@ The result `101 ns (0.0001 ms)` means if there have 10K translate texts, it will
 ## License
 
 MIT
+
+</details>

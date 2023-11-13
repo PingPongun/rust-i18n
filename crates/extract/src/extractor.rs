@@ -153,6 +153,7 @@ impl<'a> Extractor<'a> {
                                 .to_string()
                                 .trim()
                                 .trim_end_matches('\"')
+                                .trim_start_matches("r\"")
                                 .trim_start_matches('\"')
                                 .trim()
                                 .to_string();
