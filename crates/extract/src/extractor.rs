@@ -152,8 +152,8 @@ impl<'a> Extractor<'a> {
                             let lit = lit
                                 .to_string()
                                 .trim()
-                                .trim_end_matches('\"')
                                 .trim_start_matches("r\"")
+                                .trim_end_matches('\"')
                                 .trim_start_matches('\"')
                                 .trim()
                                 .to_string();
